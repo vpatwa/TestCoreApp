@@ -9,14 +9,13 @@ namespace TestCoreApp.Domain.Entities
     {
         [Key]
         public int Id { get; set; }
-        [ExplicitKey]
         public int RateChartId { get; set; }
         public string CustomerName { get; set; }
-        public string CusomerAddress { get; set; }
+        public string CustomerAddress { get; set; }
+        public string CustomerGender { get; set; }
         public string CustomerCountry { get; set; }
         public DateTime CustomerDOB { get; set; }
         public DateTime SaleDate { get; set; }
-        public virtual IList<RateChart> RateCharts { get; set; }
 
     }
 }

@@ -27,16 +27,16 @@ namespace TestCoreApp.Infrastructure.Domain.CustomerContracts
         {
             try
             {
-                IDbConnection DbCon = connection;
+                using IDbConnection DbCon = connection;
 
                 var age = CalculateAge(request.CustomerDOB);
 
                 // Find convarage Plan based on customer country and sale date
                 var covaragePlanIds = DbCon.GetAll<CoveragePlan>()
-                    .Where(a => request.SaleDate >= a.EligibilityDateFrom
-                        && request.SaleDate <= a.EligibilityDateTo
-                        && (a.EligibilityCountry.ToLower() == request.CustomerCountry.ToLower() || string.IsNullOrWhiteSpace(a.EligibilityCountry)))
-                    .Select(a => a.Id);
+                    .Where(a => request.SaleDate.Date >= a.EligibilityDateFrom.Date
+                        && request.SaleDate.Date <= a.EligibilityDateTo.Date
+                        && (string.IsNullOrWhiteSpace(a.EligibilityCountry) || a.EligibilityCountry.ToLower() == request.CustomerCountry.ToLower()))
+                    .Select(a => a.Id).ToList();
 
                 if (!covaragePlanIds.Any())
                 {
@@ -53,14 +53,15 @@ namespace TestCoreApp.Infrastructure.Domain.CustomerContracts
                     var contract = new Contract
                     {
                         CustomerName = request.CustomerName,
-                        CusomerAddress = request.CustomerAddress,
+                        CustomerAddress = request.CustomerAddress,
                         CustomerCountry = request.CustomerCountry,
+                        CustomerGender = request.Gender,
                         CustomerDOB = request.CustomerDOB,
                         SaleDate = request.SaleDate,
                         RateChartId = rateCharts.Id
                     };
 
-                    var contractId = DbCon.InsertAsync(contract);
+                    var contractId = DbCon.Insert<Contract>(contract);
                     return await Task.FromResult(new DataRequestResult { IsSuccess = true, ErrorMessage = string.Empty });
                 }
                 else
@@ -79,26 +80,26 @@ namespace TestCoreApp.Infrastructure.Domain.CustomerContracts
         {
             try
             {
-                IDbConnection DbCon = connection;
+                using IDbConnection DbCon = connection;
 
                 var currentContract = DbCon.Get<Contract>(request.ContractId);
                 if (currentContract == null)
                 {
-                    return await Task.FromResult(new DataRequestResult { IsSuccess = false, ErrorMessage = "Covarage plan is not exists" });
+                    return await Task.FromResult(new DataRequestResult { IsSuccess = false, ErrorMessage = "Specific contract is not exists." });
                 }
 
                 var age = CalculateAge(request.CustomerDOB);
 
                 // Find convarage Plan based on new customer country and sale date
                 var covaragePlanIds = DbCon.GetAll<CoveragePlan>()
-                    .Where(a => request.SaleDate >= a.EligibilityDateFrom
-                        && request.SaleDate <= a.EligibilityDateTo
-                        && (a.EligibilityCountry.ToLower() == request.CustomerCountry.ToLower() || string.IsNullOrWhiteSpace(a.EligibilityCountry)))
-                    .Select(a => a.Id);
+                    .Where(a => request.SaleDate.Date >= a.EligibilityDateFrom.Date
+                        && request.SaleDate.Date <= a.EligibilityDateTo.Date
+                        && (string.IsNullOrWhiteSpace(a.EligibilityCountry) || a.EligibilityCountry.ToLower() == request.CustomerCountry.ToLower()))
+                    .Select(a => a.Id).ToList();
 
                 if (!covaragePlanIds.Any())
                 {
-                    return await Task.FromResult(new DataRequestResult { IsSuccess = false, ErrorMessage = "Covarage plan is not exists" });
+                    return await Task.FromResult(new DataRequestResult { IsSuccess = false, ErrorMessage = "Covarage plan is not exists." });
                 }
 
                 // Find Rate Chart based on  new Age and Gender
@@ -109,13 +110,14 @@ namespace TestCoreApp.Infrastructure.Domain.CustomerContracts
                 {
                     // Insert new customer contract
                     currentContract.CustomerName = request.CustomerName;
-                    currentContract.CusomerAddress = request.CustomerAddress;
+                    currentContract.CustomerAddress = request.CustomerAddress;
+                    currentContract.CustomerGender = request.Gender;
                     currentContract.CustomerCountry = request.CustomerCountry;
                     currentContract.CustomerDOB = request.CustomerDOB;
                     currentContract.SaleDate = request.SaleDate;
                     currentContract.RateChartId = rateCharts.Id;
 
-                    var contractId = DbCon.UpdateAsync<Contract>(currentContract);
+                    var contractId = DbCon.Update<Contract>(currentContract);
                     return await Task.FromResult(new DataRequestResult { IsSuccess = true, ErrorMessage = string.Empty });
                 }
                 else
@@ -134,7 +136,7 @@ namespace TestCoreApp.Infrastructure.Domain.CustomerContracts
         {
             try
             {
-                IDbConnection DbCon = connection;
+                using IDbConnection DbCon = connection;
 
                 var deleteContract = DbCon.Get<Contract>(request.ContractId);
                 if(deleteContract == null)
@@ -156,13 +158,13 @@ namespace TestCoreApp.Infrastructure.Domain.CustomerContracts
 
         public async Task<IEnumerable<ContractDetail>> GetContractsAsync()
         {
-            IDbConnection DbCon = connection;
+            using IDbConnection DbCon = connection;
 
-            var query = "SELECT c.Id as ContractId, c.CustomerName,c .CustomerAddress,c.CustomerGender,c.CustomerCountry " +
-                        "c.CustomerDOB,c.SaleDate, cp.PlanName as CoveragePlan, rc.NetPrice as NetPrice" +
-                        "FROM Contracts c" +
-                        "JOIN RateCharts rc on c.RateChartId = rc.Id" +
-                        "JOIN CoveragePlans cp on rc.CoveragePlanId = cp.Id";
+            var query = "SELECT c.Id as ContractId, c.CustomerName,c.CustomerAddress,c.CustomerGender,c.CustomerCountry," +
+                        "CAST(c.CustomerDOB as varchar(10)) as CustomerDOB,CAST(c.SaleDate as varchar(10)) as SaleDate, cp.PlanName as CoveragePlan, rc.NetPrice as NetPrice " +
+                        "FROM Contracts c " +
+                        "JOIN RateCharts rc on c.RateChartId = rc.Id " +
+                        "JOIN CoveragePlans cp on rc.CoveragePlanId = cp.Id ";
 
             return await DbCon.QueryAsync<ContractDetail>(query);
         }

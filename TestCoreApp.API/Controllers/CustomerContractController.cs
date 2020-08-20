@@ -24,11 +24,11 @@ namespace TestCoreApp.API.Controllers
             _logger = logger;
         }
 
-        [Route("contracts")]
+        [Route("getcontracts")]
         [HttpGet]
-        public async Task<IEnumerable<ContractDetail>> GetContracts(GetContractQuery getContractQuery)
+        public async Task<IEnumerable<ContractDetail>> GetContracts()
         {
-            return await Mediator.Send(getContractQuery);
+            return await Mediator.Send(new GetContractQuery());
         }
 
         [Route("create")]

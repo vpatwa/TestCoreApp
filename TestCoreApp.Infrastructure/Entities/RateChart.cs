@@ -10,11 +10,9 @@ namespace TestCoreApp.Domain.Entities
     {
         [Key]
         public int Id { get; set; }
-        [ExplicitKey]
         public int CoveragePlanId { get; set; }
         public string CustomerGender { get; set; }
         public string CustomerAge { get; set; }
         public decimal NetPrice { get; set; }
-        public virtual IList<CoveragePlan> CoveragePlans { get; set; }
     }
 }
